@@ -1,0 +1,45 @@
+// FiveM Master Server List Protobuf Schema
+//
+// Derived from the official citizenfx/fivem repository:
+//   ext/cfx-ui/src/cfx/common/services/servers/source/api/master.js
+//   ext/cfx-ui/src/cfx/common/services/servers/source/api/master.d.ts
+//
+// The FiveM master server streams a binary response where each frame
+// is a length-prefixed Server message. This schema defines the exact
+// wire format used by the FiveM client UI (cfx-ui) to decode server data.
+
+syntax = "proto3";
+package master;
+
+message Player {
+  string name = 1;
+  repeated string identifiers = 2;
+  string endpoint = 3;
+  int32 ping = 4;
+  int32 id = 5;
+}
+
+message ServerData {
+  int32 svMaxclients = 1;
+  int32 clients = 2;
+  int32 protocol = 3;
+  string hostname = 4;
+  string gametype = 5;
+  string mapname = 6;
+  // field 7 is unused/reserved
+  repeated string resources = 8;
+  string server = 9;
+  repeated Player players = 10;
+  int32 iconVersion = 11;
+  map<string, string> vars = 12;
+  // fields 13-15 unused/reserved
+  bool enhancedHostSupport = 16;
+  int32 upvotePower = 17;
+  repeated string connectEndPoints = 18;
+  int32 burstPower = 19;
+}
+
+message Server {
+  string EndPoint = 1;
+  ServerData Data = 2;
+}

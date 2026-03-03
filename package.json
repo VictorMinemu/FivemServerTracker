@@ -9,7 +9,10 @@
     "test": "vitest run --reporter=verbose",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "proto:js": "npx pbjs -t static-module -w es6 -o src/proto/generated/master.js src/proto/master.proto",
+    "proto:ts": "npx pbts -o src/proto/generated/master.d.ts src/proto/generated/master.js",
+    "proto:gen": "npm run proto:js && npm run proto:ts"
   },
   "repository": {
     "type": "git",
