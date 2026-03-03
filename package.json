@@ -1,0 +1,42 @@
+{
+  "name": "fivemservertracker",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "FiveM server tracker with protobuf stream decoding and historical analytics",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run --reporter=verbose",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "typecheck": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VictorMinemu/FivemServerTracker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/VictorMinemu/FivemServerTracker/issues"
+  },
+  "homepage": "https://github.com/VictorMinemu/FivemServerTracker#readme",
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "dotenv": "^17.3.1",
+    "drizzle-orm": "^0.45.1",
+    "node-cron": "^4.2.1",
+    "protobufjs": "^7.5.4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.3.3",
+    "@types/node-cron": "^3.0.11",
+    "drizzle-kit": "^0.31.9",
+    "protobufjs-cli": "^2.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
