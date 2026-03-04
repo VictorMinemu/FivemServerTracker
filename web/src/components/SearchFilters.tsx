@@ -1,22 +1,17 @@
 /**
- * SearchFilters Preact Island
+ * SearchFilters Preact Island — Sidebar Layout
  *
- * Interactive client-side component for searching, filtering, and sorting
- * the server listing. Renders as a form that navigates via URL query params
- * on submit, making all filter state bookmarkable and shareable.
- *
- * @module
+ * Vertical filter controls designed for the sidebar panel.
+ * Text search triggers on form submit; selects navigate immediately.
  */
 
-import { useState, useCallback, useRef } from 'preact/hooks';
+import { useState, useCallback } from 'preact/hooks';
 
-/** Category option for the gamemode dropdown */
 interface CategoryOption {
   slug: string;
   label: string;
 }
 
-/** Locale option for the locale dropdown */
 interface LocaleOption {
   locale: string;
   flag: string;
@@ -24,7 +19,6 @@ interface LocaleOption {
   count: number;
 }
 
-/** Props for the SearchFilters component */
 interface SearchFiltersProps {
   initialQuery: string;
   initialSort: string;
@@ -37,7 +31,6 @@ interface SearchFiltersProps {
   locales: LocaleOption[];
 }
 
-/** Sort option definition for the sort dropdown */
 interface SortOption {
   label: string;
   sort: string;
@@ -47,137 +40,136 @@ interface SortOption {
 const SORT_OPTIONS: SortOption[] = [
   { label: 'Most Players', sort: 'players', sortDir: 'desc' },
   { label: 'Fewest Players', sort: 'players', sortDir: 'asc' },
-  { label: 'Name A-Z', sort: 'name', sortDir: 'asc' },
-  { label: 'Name Z-A', sort: 'name', sortDir: 'desc' },
+  { label: 'Name A–Z', sort: 'name', sortDir: 'asc' },
+  { label: 'Name Z–A', sort: 'name', sortDir: 'desc' },
 ];
 
 /**
- * SearchFilters component for server listing page.
- *
- * Renders search input, category/gamemode dropdown, sort dropdown,
- * and min/max player count inputs. On form submit, navigates to
- * the listing page with appropriate URL query parameters.
- *
- * @param props - Initial filter values and category list
- * @returns Preact VNode
- *
- * @example
- * ```tsx
- * <SearchFilters
- *   client:load
- *   initialQuery=""
- *   initialSort="players"
- *   initialSortDir="desc"
- *   initialGamemode=""
- *   initialLocale=""
- *   initialMinPlayers=""
- *   initialMaxPlayers=""
- *   categories={[{ slug: 'rp', label: 'Roleplay' }]}
- * />
- * ```
+ * Builds a query string from filter state, omitting defaults.
  */
+function buildParams(state: {
+  query: string;
+  gamemode: string;
+  locale: string;
+  minPlayers: string;
+  maxPlayers: string;
+  sortKey: string;
+}): string {
+  const params = new URLSearchParams();
+  if (state.query.trim()) params.set('q', state.query.trim());
+  if (state.gamemode) params.set('category', state.gamemode);
+  if (state.locale) params.set('locale', state.locale);
+  if (state.minPlayers) params.set('minPlayers', state.minPlayers);
+  if (state.maxPlayers) params.set('maxPlayers', state.maxPlayers);
+
+  const [sort, sortDir] = state.sortKey.split('_');
+  if (sort && sort !== 'players') params.set('sort', sort);
+  if (sortDir && sortDir !== 'desc') params.set('sortDir', sortDir);
+
+  return params.toString();
+}
+
 export default function SearchFilters(props: SearchFiltersProps) {
   const [query, setQuery] = useState(props.initialQuery);
   const [gamemode, setGamemode] = useState(props.initialGamemode);
   const [locale, setLocale] = useState(props.initialLocale);
   const [minPlayers, setMinPlayers] = useState(props.initialMinPlayers);
   const [maxPlayers, setMaxPlayers] = useState(props.initialMaxPlayers);
-
-  // Combine sort + sortDir into a single select value
   const initialSortKey = `${props.initialSort || 'players'}_${props.initialSortDir || 'desc'}`;
   const [sortKey, setSortKey] = useState(initialSortKey);
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navigate = useCallback(
+    (overrides: Record<string, string> = {}) => {
+      const state = { query, gamemode, locale, minPlayers, maxPlayers, sortKey, ...overrides };
+      const qs = buildParams(state);
+      window.location.href = qs ? `/?${qs}` : '/';
+    },
+    [query, gamemode, locale, minPlayers, maxPlayers, sortKey],
+  );
 
-  /**
-   * Builds URLSearchParams from non-empty filter values and navigates.
-   */
-  const navigateWithFilters = useCallback(() => {
-    const params = new URLSearchParams();
-
-    if (query.trim()) params.set('q', query.trim());
-    if (gamemode) params.set('category', gamemode);
-    if (locale) params.set('locale', locale);
-    if (minPlayers) params.set('minPlayers', minPlayers);
-    if (maxPlayers) params.set('maxPlayers', maxPlayers);
-
-    // Parse sort key back to sort + sortDir
-    const [sort, sortDir] = sortKey.split('_');
-    if (sort && sort !== 'players') params.set('sort', sort);
-    if (sortDir && sortDir !== 'desc') params.set('sortDir', sortDir);
-    // Default is players_desc, no need to include in URL
-
-    const qs = params.toString();
-    window.location.href = qs ? `/?${qs}` : '/';
-  }, [query, gamemode, locale, minPlayers, maxPlayers, sortKey]);
-
-  /**
-   * Handles form submission (primary interaction).
-   */
   const handleSubmit = useCallback(
     (e: Event) => {
       e.preventDefault();
-      navigateWithFilters();
+      navigate();
     },
-    [navigateWithFilters],
+    [navigate],
   );
 
-  /**
-   * Debounced search on text input (enhancement).
-   */
-  const handleQueryInput = useCallback(
+  const handleGamemodeChange = useCallback(
     (e: Event) => {
-      const value = (e.target as HTMLInputElement).value;
-      setQuery(value);
-
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        const params = new URLSearchParams();
-        if (value.trim()) params.set('q', value.trim());
-
-        // Preserve other active filters
-        if (gamemode) params.set('category', gamemode);
-        if (locale) params.set('locale', locale);
-        if (minPlayers) params.set('minPlayers', minPlayers);
-        if (maxPlayers) params.set('maxPlayers', maxPlayers);
-        const [sort, sortDir] = sortKey.split('_');
-        if (sort && sort !== 'players') params.set('sort', sort);
-        if (sortDir && sortDir !== 'desc') params.set('sortDir', sortDir);
-
-        const qs = params.toString();
-        window.location.href = qs ? `/?${qs}` : '/';
-      }, 300);
+      const val = (e.target as HTMLSelectElement).value;
+      setGamemode(val);
+      navigate({ gamemode: val });
     },
-    [gamemode, locale, minPlayers, maxPlayers, sortKey],
+    [navigate],
   );
 
-  const inputClass =
-    'w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:border-blue-400';
+  const handleLocaleChange = useCallback(
+    (e: Event) => {
+      const val = (e.target as HTMLSelectElement).value;
+      setLocale(val);
+      navigate({ locale: val });
+    },
+    [navigate],
+  );
 
-  const selectClass =
-    'w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-blue-400';
+  const handleSortChange = useCallback(
+    (e: Event) => {
+      const val = (e.target as HTMLSelectElement).value;
+      setSortKey(val);
+      navigate({ sortKey: val });
+    },
+    [navigate],
+  );
+
+  const labelCls =
+    'block text-[11px] font-semibold uppercase tracking-widest text-txt-3 mb-1.5';
+
+  const inputCls =
+    'w-full rounded-lg border border-edge bg-surface-2 px-3 py-2 text-sm text-txt placeholder-txt-3 outline-none transition-all duration-200 focus:border-accent/50 focus:ring-2 focus:ring-accent/15';
+
+  const selectCls =
+    'w-full rounded-lg border border-edge bg-surface-2 px-3 py-2 text-sm text-txt outline-none transition-all duration-200 focus:border-accent/50 focus:ring-2 focus:ring-accent/15 appearance-none cursor-pointer';
 
   return (
-    <form onSubmit={handleSubmit} class="mb-6 space-y-4">
-      {/* Search input - full width */}
+    <form onSubmit={handleSubmit} class="space-y-4">
+      {/* Search */}
       <div>
-        <input
-          type="text"
-          value={query}
-          onInput={handleQueryInput}
-          placeholder="Search servers..."
-          class={inputClass}
-          aria-label="Search servers by name"
-        />
+        <label class={labelCls}>Search</label>
+        <div class="relative">
+          <svg
+            class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-txt-3 pointer-events-none"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <input
+            type="text"
+            value={query}
+            onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
+            placeholder="Server name..."
+            class={`${inputCls} pl-9`}
+            aria-label="Search servers"
+          />
+        </div>
       </div>
 
-      {/* Filter row - stacks on mobile, row on desktop */}
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {/* Category/Gamemode dropdown */}
+      <div class="h-px bg-edge/50" />
+
+      {/* Category */}
+      <div>
+        <label class={labelCls}>Category</label>
         <select
           value={gamemode}
-          onChange={(e) => setGamemode((e.target as HTMLSelectElement).value)}
-          class={selectClass}
+          onChange={handleGamemodeChange}
+          class={selectCls}
           aria-label="Filter by category"
         >
           <option value="">All Categories</option>
@@ -187,14 +179,15 @@ export default function SearchFilters(props: SearchFiltersProps) {
             </option>
           ))}
         </select>
+      </div>
 
-        {/* Locale/Region dropdown */}
+      {/* Region */}
+      <div>
+        <label class={labelCls}>Region</label>
         <select
           value={locale}
-          onChange={(e) => {
-            setLocale((e.target as HTMLSelectElement).value);
-          }}
-          class={selectClass}
+          onChange={handleLocaleChange}
+          class={selectCls}
           aria-label="Filter by region"
         >
           <option value="">All Regions</option>
@@ -204,12 +197,15 @@ export default function SearchFilters(props: SearchFiltersProps) {
             </option>
           ))}
         </select>
+      </div>
 
-        {/* Sort dropdown */}
+      {/* Sort */}
+      <div>
+        <label class={labelCls}>Sort by</label>
         <select
           value={sortKey}
-          onChange={(e) => setSortKey((e.target as HTMLSelectElement).value)}
-          class={selectClass}
+          onChange={handleSortChange}
+          class={selectCls}
           aria-label="Sort servers"
         >
           {SORT_OPTIONS.map((opt) => (
@@ -220,38 +216,40 @@ export default function SearchFilters(props: SearchFiltersProps) {
         </select>
       </div>
 
-      {/* Player range + submit row */}
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {/* Min players */}
-        <input
-          type="number"
-          value={minPlayers}
-          onInput={(e) => setMinPlayers((e.target as HTMLInputElement).value)}
-          placeholder="Min players"
-          min="0"
-          class={inputClass}
-          aria-label="Minimum player count"
-        />
+      <div class="h-px bg-edge/50" />
 
-        {/* Max players */}
-        <input
-          type="number"
-          value={maxPlayers}
-          onInput={(e) => setMaxPlayers((e.target as HTMLInputElement).value)}
-          placeholder="Max players"
-          min="0"
-          class={inputClass}
-          aria-label="Maximum player count"
-        />
-
-        {/* Submit button */}
-        <button
-          type="submit"
-          class="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-offset-gray-900"
-        >
-          Search
-        </button>
+      {/* Player count range */}
+      <div>
+        <label class={labelCls}>Players</label>
+        <div class="grid grid-cols-2 gap-2">
+          <input
+            type="number"
+            value={minPlayers}
+            onInput={(e) => setMinPlayers((e.target as HTMLInputElement).value)}
+            placeholder="Min"
+            min="0"
+            class={inputCls}
+            aria-label="Minimum player count"
+          />
+          <input
+            type="number"
+            value={maxPlayers}
+            onInput={(e) => setMaxPlayers((e.target as HTMLInputElement).value)}
+            placeholder="Max"
+            min="0"
+            class={inputCls}
+            aria-label="Maximum player count"
+          />
+        </div>
       </div>
+
+      {/* Apply */}
+      <button
+        type="submit"
+        class="w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-surface-0 transition-all duration-200 hover:bg-accent-hover hover:shadow-[0_4px_16px_-4px] hover:shadow-accent/30 active:scale-[0.98]"
+      >
+        Apply Filters
+      </button>
     </form>
   );
 }
