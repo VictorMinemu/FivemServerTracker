@@ -2,11 +2,12 @@
 export const prerender = false;
 
 import Base from '../../layouts/Base.astro';
+import ServerCard from '../../components/ServerCard.astro';
+import ServerGrid from '../../components/ServerGrid.astro';
 import CategoryNav from '../../components/CategoryNav.astro';
 import { db } from '../../lib/db.js';
 import { getServerListing, getCategories, CATEGORY_MAP } from '../../lib/queries.js';
 import { getServerIconUrl } from '../../lib/url-helpers.js';
-import { localeToFlag } from '../../lib/locale-helpers.js';
 
 const { slug } = Astro.params;
 
@@ -14,7 +15,6 @@ if (!slug) {
   return Astro.redirect('/');
 }
 
-// Validate slug exists in category map
 const catDef = CATEGORY_MAP[slug];
 if (!catDef) {
   return Astro.redirect('/');
@@ -23,7 +23,6 @@ if (!catDef) {
 const categories = getCategories();
 const categoryLabel = catDef.label;
 
-// Read pagination and sort params from URL
 const url = Astro.url;
 const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
 const sort = (url.searchParams.get('sort') === 'name' ? 'name' : 'players') as 'players' | 'name';
@@ -31,9 +30,6 @@ const sortDir = (url.searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc') as 
 
 const result = await getServerListing(db, { category: slug, page, sort, sortDir });
 
-/**
- * Build a pagination URL preserving current params but changing the page.
- */
 function pageUrl(p: number): string {
   const params = new URLSearchParams(url.searchParams);
   params.set('page', String(p));
@@ -46,107 +42,89 @@ function pageUrl(p: number): string {
     <CategoryNav categories={categories} activeCategory={slug} />
   </div>
 
-  <div class="mb-6">
-    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
+  <!-- Page header -->
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+    <h1 class="text-2xl font-bold tracking-tight">
       {categoryLabel} Servers
-      <span class="ml-2 text-base font-normal text-gray-500 dark:text-gray-400">
-        ({result.total} total)
+      <span class="ml-2 text-base font-medium text-txt-3">
+        ({result.total.toLocaleString()})
       </span>
     </h1>
-  </div>
 
-  <!-- Sort controls -->
-  <div class="mb-4 flex items-center gap-4 text-sm">
-    <span class="text-gray-500 dark:text-gray-400">Sort by:</span>
-    <a
-      href={`/category/${slug}?sort=players&sortDir=desc`}
-      class:list={[
-        'rounded px-2 py-1 transition-colors',
-        sort === 'players'
-          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800',
-      ]}
-    >
-      Most Players
-    </a>
-    <a
-      href={`/category/${slug}?sort=name&sortDir=asc`}
-      class:list={[
-        'rounded px-2 py-1 transition-colors',
-        sort === 'name'
-          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800',
-      ]}
-    >
-      Name A-Z
-    </a>
+    <!-- Sort controls -->
+    <div class="flex items-center gap-2">
+      <span class="text-xs font-semibold uppercase tracking-widest text-txt-3">Sort</span>
+      <div class="flex gap-1 rounded-lg bg-surface-0 p-1 ring-1 ring-edge">
+        <a
+          href={`/category/${slug}?sort=players&sortDir=desc`}
+          class:list={[
+            'rounded-md px-3 py-1.5 text-xs font-semibold transition-all duration-200',
+            sort === 'players'
+              ? 'bg-accent text-surface-0'
+              : 'text-txt-2 hover:text-txt hover:bg-surface-3',
+          ]}
+        >
+          Most Players
+        </a>
+        <a
+          href={`/category/${slug}?sort=name&sortDir=asc`}
+          class:list={[
+            'rounded-md px-3 py-1.5 text-xs font-semibold transition-all duration-200',
+            sort === 'name'
+              ? 'bg-accent text-surface-0'
+              : 'text-txt-2 hover:text-txt hover:bg-surface-3',
+          ]}
+        >
+          Name A–Z
+        </a>
+      </div>
+    </div>
   </div>
 
   <!-- Server grid -->
   {result.servers.length > 0 ? (
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {result.servers.map((server) => {
-        const iconUrl = getServerIconUrl(server.id, server.iconVersion);
-        return (
-          <a
-            href={`/server/${server.id}`}
-            class="group rounded-lg border border-gray-200 bg-white p-4 transition-colors hover:border-blue-300 hover:bg-blue-50/50 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-blue-700 dark:hover:bg-blue-950/30"
-          >
-            <div class="flex items-start gap-3">
-              <img
-                src={iconUrl}
-                alt=""
-                width="40"
-                height="40"
-                class="h-10 w-10 shrink-0 rounded object-cover"
-                loading="lazy"
-              />
-              <div class="min-w-0 flex-1">
-                <h2 class="flex items-center gap-1.5 text-sm font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                  {localeToFlag(server.locale) && <span class="shrink-0">{localeToFlag(server.locale)}</span>}
-                  <span class="truncate">{server.hostnameClean}</span>
-                </h2>
-                <div class="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                  <span>{server.currentPlayers}/{server.maxPlayers} players</span>
-                  {server.isOnline ? (
-                    <span class="inline-block h-2 w-2 rounded-full bg-green-500" title="Online" />
-                  ) : (
-                    <span class="inline-block h-2 w-2 rounded-full bg-red-500" title="Offline" />
-                  )}
-                </div>
-                {server.gametype && (
-                  <p class="mt-1 truncate text-xs text-gray-400 dark:text-gray-500">{server.gametype}</p>
-                )}
-              </div>
-            </div>
-          </a>
-        );
-      })}
-    </div>
+    <ServerGrid>
+      {result.servers.map((server) => (
+        <ServerCard
+          id={server.id}
+          name={server.hostnameClean}
+          players={server.currentPlayers}
+          maxPlayers={server.maxPlayers}
+          isOnline={server.isOnline}
+          gamemode={server.gametype}
+          mapname={server.mapname}
+          locale={server.locale}
+          iconUrl={getServerIconUrl(server.id, server.iconVersion)}
+          lastSeenAt={server.lastSeenAt}
+          updatedAt={server.updatedAt}
+        />
+      ))}
+    </ServerGrid>
   ) : (
-    <div class="py-12 text-center text-gray-500 dark:text-gray-400">
-      <p>No servers found in this category.</p>
+    <div class="flex flex-col items-center justify-center rounded-xl border border-edge bg-surface-2 py-20 text-center">
+      <p class="text-lg font-semibold text-txt-2">No servers found</p>
+      <p class="mt-1 text-sm text-txt-3">No servers in this category yet</p>
     </div>
   )}
 
   <!-- Pagination -->
   {result.totalPages > 1 && (
-    <nav class="mt-8 flex items-center justify-center gap-2" aria-label="Pagination">
+    <nav class="mt-10 flex items-center justify-center gap-2 fade-in" aria-label="Pagination">
       {page > 1 && (
         <a
           href={pageUrl(page - 1)}
-          class="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+          class="rounded-lg bg-surface-2 px-4 py-2 text-sm font-medium text-txt-2 ring-1 ring-edge transition-all hover:bg-surface-3 hover:text-txt"
         >
           Previous
         </a>
       )}
-      <span class="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
+      <span class="px-3 py-2 text-sm font-medium text-txt-3 tabular-nums">
         Page {page} of {result.totalPages}
       </span>
       {page < result.totalPages && (
         <a
           href={pageUrl(page + 1)}
-          class="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+          class="rounded-lg bg-surface-2 px-4 py-2 text-sm font-medium text-txt-2 ring-1 ring-edge transition-all hover:bg-surface-3 hover:text-txt"
         >
           Next
         </a>

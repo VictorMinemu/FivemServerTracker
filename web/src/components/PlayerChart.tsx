@@ -1,14 +1,8 @@
 /**
  * PlayerChart Preact Island
  *
- * Interactive client-side component that renders a uPlot time-series chart
- * of server player counts. Supports switching between 24h, 7d, and 30d
- * time ranges, and displays peak and average player statistics.
- *
- * Uses the /api/server/[id]/history.json endpoint to fetch chart data
- * in uPlot's native columnar format [timestamps[], playerCounts[]].
- *
- * @module
+ * Renders a uPlot time-series chart of server player counts
+ * with 24h / 7d / 30d range switching and peak/avg stats.
  */
 
 import { useRef, useEffect, useState, useCallback } from 'preact/hooks';
@@ -17,39 +11,21 @@ import 'uplot/dist/uPlot.min.css';
 
 import type { HistoryResponse, TimeRange } from '../lib/history-queries.js';
 
-/** Props for the PlayerChart component */
 interface PlayerChartProps {
-  /** FiveM server endpoint ID */
   serverId: string;
 }
 
-/** Summary statistics for the current range */
 interface ChartStats {
   peak: number;
   avg: number;
 }
 
-/** Available time range options with labels */
 const RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
   { value: '24h', label: '24h' },
   { value: '7d', label: '7d' },
   { value: '30d', label: '30d' },
 ];
 
-/**
- * PlayerChart component for the server detail page.
- *
- * Fetches player history data from the API and renders an interactive
- * uPlot chart with time range selector buttons and stats display.
- *
- * @param props - Component props with serverId
- * @returns Preact VNode
- *
- * @example
- * ```tsx
- * <PlayerChart client:load serverId="bkr4qr" />
- * ```
- */
 export default function PlayerChart({ serverId }: PlayerChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<uPlot | null>(null);
@@ -60,7 +36,6 @@ export default function PlayerChart({ serverId }: PlayerChartProps) {
   const [error, setError] = useState<string | null>(null);
   const [isEmpty, setIsEmpty] = useState(false);
 
-  // Fetch data and render chart when serverId or range changes
   useEffect(() => {
     const controller = new AbortController();
 
@@ -80,45 +55,58 @@ export default function PlayerChart({ serverId }: PlayerChartProps) {
         }
 
         const json = (await res.json()) as HistoryResponse;
-
         setStats({ peak: json.peak, avg: json.avg });
 
-        // Destroy previous chart instance
         if (chartRef.current) {
           chartRef.current.destroy();
           chartRef.current = null;
         }
 
-        // Handle empty data
         if (json.data[0].length === 0) {
           setIsEmpty(true);
           setLoading(false);
           return;
         }
 
-        // Create new uPlot instance
         const container = containerRef.current;
         if (!container) {
           setLoading(false);
           return;
         }
 
+        const accentColor = '#34d399';
+        const gridColor = 'rgba(31, 33, 56, 0.6)';
+        const textColor = '#8f91ae';
+
         const opts: uPlot.Options = {
           width: container.clientWidth,
-          height: 300,
+          height: 280,
+          padding: [16, 8, 0, 0],
+          cursor: {
+            points: { size: 6 },
+          },
           series: [
             {},
             {
               label: 'Players',
-              stroke: '#3b82f6',
+              stroke: accentColor,
               width: 2,
-              fill: 'rgba(59, 130, 246, 0.1)',
+              fill: `${accentColor}12`,
+              points: { show: false },
             },
           ],
           axes: [
-            {},
             {
-              label: 'Players',
+              stroke: textColor,
+              grid: { stroke: gridColor, width: 1 },
+              ticks: { stroke: gridColor, width: 1 },
+              font: '12px Outfit, sans-serif',
+            },
+            {
+              stroke: textColor,
+              grid: { stroke: gridColor, width: 1 },
+              ticks: { stroke: gridColor, width: 1 },
+              font: '12px Outfit, sans-serif',
               size: 50,
             },
           ],
@@ -147,7 +135,6 @@ export default function PlayerChart({ serverId }: PlayerChartProps) {
     };
   }, [serverId, range]);
 
-  // Resize observer for responsive chart
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -157,16 +144,13 @@ export default function PlayerChart({ serverId }: PlayerChartProps) {
       if (entry && chartRef.current) {
         chartRef.current.setSize({
           width: entry.contentRect.width,
-          height: 300,
+          height: 280,
         });
       }
     });
 
     observer.observe(container);
-
-    return () => {
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, []);
 
   const handleRangeChange = useCallback((newRange: TimeRange) => {
@@ -175,68 +159,71 @@ export default function PlayerChart({ serverId }: PlayerChartProps) {
 
   return (
     <div class="space-y-4">
-      {/* Time range buttons */}
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium text-gray-600 dark:text-gray-400">
-          Time Range:
-        </span>
-        <div class="flex gap-1">
+      {/* Controls row */}
+      <div class="flex items-center justify-between">
+        <div class="flex gap-1 rounded-lg bg-surface-0 p-1 ring-1 ring-edge">
           {RANGE_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               type="button"
               onClick={() => handleRangeChange(opt.value)}
-              class={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              class={`rounded-md px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 ${
                 range === opt.value
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                  ? 'bg-accent text-surface-0 shadow-sm'
+                  : 'text-txt-2 hover:text-txt hover:bg-surface-3'
               }`}
             >
               {opt.label}
             </button>
           ))}
         </div>
-      </div>
 
-      {/* Stats row */}
-      {stats && !isEmpty && (
-        <div class="flex gap-6 text-sm">
-          <div>
-            <span class="font-medium text-gray-500 dark:text-gray-400">Peak: </span>
-            <span class="font-semibold text-gray-900 dark:text-gray-100">{stats.peak}</span>
+        {/* Stats */}
+        {stats && !isEmpty && (
+          <div class="flex gap-5 text-sm">
+            <div class="flex items-center gap-1.5">
+              <span class="text-txt-3 text-xs font-medium uppercase tracking-wide">Peak</span>
+              <span class="font-bold text-txt tabular-nums">{stats.peak}</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-txt-3 text-xs font-medium uppercase tracking-wide">Avg</span>
+              <span class="font-bold text-txt tabular-nums">{Math.round(stats.avg)}</span>
+            </div>
           </div>
-          <div>
-            <span class="font-medium text-gray-500 dark:text-gray-400">Avg: </span>
-            <span class="font-semibold text-gray-900 dark:text-gray-100">{Math.round(stats.avg)}</span>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Loading state */}
       {loading && (
-        <div class="flex h-[300px] items-center justify-center rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-          <span class="text-sm text-gray-500 dark:text-gray-400">Loading chart...</span>
+        <div class="flex h-[280px] items-center justify-center rounded-lg bg-surface-0 ring-1 ring-edge">
+          <div class="flex items-center gap-2 text-sm text-txt-3">
+            <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Loading chart...
+          </div>
         </div>
       )}
 
       {/* Error state */}
       {error && !loading && (
-        <div class="flex h-[300px] items-center justify-center rounded-lg border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
-          <span class="text-sm text-red-600 dark:text-red-400">{error}</span>
+        <div class="flex h-[280px] items-center justify-center rounded-lg bg-offline/5 ring-1 ring-offline/20">
+          <span class="text-sm text-offline">{error}</span>
         </div>
       )}
 
       {/* Empty state */}
       {isEmpty && !loading && !error && (
-        <div class="flex h-[300px] items-center justify-center rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-          <span class="text-sm text-gray-500 dark:text-gray-400">No historical data available</span>
+        <div class="flex h-[280px] items-center justify-center rounded-lg bg-surface-0 ring-1 ring-edge">
+          <span class="text-sm text-txt-3">No historical data available</span>
         </div>
       )}
 
       {/* Chart container */}
       <div
         ref={containerRef}
-        class={`min-h-[300px] ${loading || error || isEmpty ? 'hidden' : ''}`}
+        class={`min-h-[280px] ${loading || error || isEmpty ? 'hidden' : ''}`}
       />
     </div>
   );

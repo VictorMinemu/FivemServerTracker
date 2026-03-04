@@ -1,23 +1,4 @@
 ---
-/**
- * ServerCard Component
- *
- * Renders an individual server as a clickable card showing its name, player count,
- * online status, gamemode, map, and icon. The entire card links to the server detail page.
- *
- * @param id - FiveM endpoint ID
- * @param name - Clean server hostname
- * @param players - Current player count
- * @param maxPlayers - Maximum player slots
- * @param isOnline - Whether the server is currently online
- * @param gamemode - Server gamemode/gametype (nullable)
- * @param mapname - Current map name (nullable)
- * @param iconUrl - URL for the server icon image
- * @param lastSeenAt - When the server was last detected in a poll
- * @param updatedAt - When the server record was last updated in the database
- */
-
-import { getConnectUrl } from '../lib/url-helpers.js';
 import { localeToFlag } from '../lib/locale-helpers.js';
 
 interface Props {
@@ -37,10 +18,6 @@ interface Props {
 const { id, name, players, maxPlayers, isOnline, gamemode, mapname, locale, iconUrl, lastSeenAt, updatedAt } = Astro.props;
 const flag = localeToFlag(locale);
 
-/**
- * Formats a Date as a relative time string (e.g., "5 min ago", "2 hours ago").
- * Falls back to ISO date for timestamps older than 7 days.
- */
 function formatRelativeTime(date: Date): string {
   const now = Date.now();
   const diffMs = now - date.getTime();
@@ -50,7 +27,7 @@ function formatRelativeTime(date: Date): string {
   const diffDay = Math.floor(diffHr / 24);
 
   if (diffSec < 60) return 'just now';
-  if (diffMin < 60) return `${diffMin} min ago`;
+  if (diffMin < 60) return `${diffMin}m ago`;
   if (diffHr < 24) return `${diffHr}h ago`;
   if (diffDay < 7) return `${diffDay}d ago`;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -58,57 +35,79 @@ function formatRelativeTime(date: Date): string {
 
 const relativeTime = formatRelativeTime(updatedAt);
 const playerPercent = maxPlayers > 0 ? Math.round((players / maxPlayers) * 100) : 0;
+
+const barColor = playerPercent > 85
+  ? 'bg-offline'
+  : playerPercent > 60
+    ? 'bg-warn'
+    : 'bg-accent';
 ---
 
 <a
   href={`/server/${id}`}
-  class="group block rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+  class="card-animate group block rounded-xl border border-edge bg-surface-2 p-5 transition-all duration-300 hover:border-accent/30 hover:bg-surface-3 hover:shadow-[0_4px_40px_-8px] hover:shadow-accent/8 hover:-translate-y-0.5"
 >
-  <div class="flex items-start gap-3">
+  <!-- Top row: icon + info -->
+  <div class="flex items-start gap-3.5">
     <img
       src={iconUrl}
-      alt={`${name} icon`}
-      width="48"
-      height="48"
+      alt=""
+      width="44"
+      height="44"
       loading="lazy"
-      class="h-12 w-12 shrink-0 rounded-lg object-cover"
+      class="h-11 w-11 shrink-0 rounded-lg object-cover ring-1 ring-edge"
     />
     <div class="min-w-0 flex-1">
+      <!-- Name + status -->
       <div class="flex items-center gap-2">
         <span
           class:list={[
-            'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
-            isOnline ? 'bg-green-500' : 'bg-red-500',
+            'inline-block h-2 w-2 shrink-0 rounded-full',
+            isOnline ? 'bg-online dot-online shadow-[0_0_6px] shadow-online/60' : 'bg-offline',
           ]}
           title={isOnline ? 'Online' : 'Offline'}
         ></span>
         {flag && (
-          <span class="shrink-0 text-base" title={locale ?? ''} aria-label={`Server locale: ${locale}`}>{flag}</span>
+          <span class="shrink-0 text-sm" title={locale ?? ''}>{flag}</span>
         )}
-        <h3 class="truncate text-sm font-semibold text-gray-900 group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-400">
+        <h3 class="truncate text-[15px] font-semibold text-txt transition-colors group-hover:text-accent">
           {name}
         </h3>
       </div>
-      <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-        <span class="font-medium text-gray-900 dark:text-gray-200">{players}</span>/{maxPlayers} players
-      </p>
+
+      <!-- Player count + capacity bar -->
+      <div class="mt-2.5 flex items-center gap-3">
+        <span class="text-sm text-txt-2 tabular-nums">
+          <span class="font-semibold text-txt">{players}</span>
+          <span class="text-txt-3">/{maxPlayers}</span>
+        </span>
+        <div class="flex-1 h-1.5 rounded-full bg-edge overflow-hidden">
+          <div
+            class:list={['h-full rounded-full transition-all duration-500', barColor]}
+            style={`width: ${playerPercent}%`}
+          />
+        </div>
+        <span class="text-[11px] font-medium text-txt-3 tabular-nums">{playerPercent}%</span>
+      </div>
     </div>
   </div>
 
-  <div class="mt-3 flex flex-wrap items-center gap-2">
+  <!-- Badges -->
+  <div class="mt-3.5 flex flex-wrap items-center gap-1.5">
     {gamemode && (
-      <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+      <span class="rounded-md bg-accent/10 px-2.5 py-0.5 text-[11px] font-semibold text-accent">
         {gamemode}
       </span>
     )}
     {mapname && (
-      <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+      <span class="rounded-md bg-surface-hover px-2.5 py-0.5 text-[11px] font-medium text-txt-2">
         {mapname}
       </span>
     )}
   </div>
 
-  <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">
-    Last updated {relativeTime}
-  </p>
+  <!-- Footer -->
+  <div class="mt-3 text-[11px] font-medium text-txt-3">
+    {relativeTime}
+  </div>
 </a>

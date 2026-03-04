@@ -1,19 +1,5 @@
 ---
-/**
- * Tag Cloud Component
- *
- * Renders a flex-wrap container of tag pills showing popular tags
- * with their occurrence counts. Each tag links to the listing page
- * filtered by that tag.
- *
- * @example
- * ```astro
- * <TagCloud tags={[{ tag: 'roleplay', count: 45 }, { tag: 'economy', count: 32 }]} />
- * ```
- */
-
 interface Props {
-  /** Array of tags with occurrence counts */
   tags: { tag: string; count: number }[];
 }
 
@@ -25,9 +11,10 @@ const { tags } = Astro.props;
     {tags.map(({ tag, count }) => (
       <a
         href={`/?tag=${encodeURIComponent(tag)}`}
-        class="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+        class="rounded-lg bg-surface-2 px-3 py-1 text-xs font-medium text-txt-2 ring-1 ring-edge transition-all duration-200 hover:ring-accent/30 hover:text-txt hover:bg-surface-3"
       >
-        {tag} <span class="text-gray-400 dark:text-gray-500">({count})</span>
+        {tag}
+        <span class="ml-1 text-txt-3">{count}</span>
       </a>
     ))}
   </div>

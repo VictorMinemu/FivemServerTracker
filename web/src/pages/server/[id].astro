@@ -22,7 +22,6 @@ if (!server) {
 const connectUrl = getConnectUrl(server.id);
 const iconUrl = getServerIconUrl(server.id, server.iconVersion);
 
-/** Format a Date as a human-readable string */
 function formatDate(date: Date): string {
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
@@ -37,66 +36,99 @@ const playerPercent = server.maxPlayers > 0
   ? Math.round((server.currentPlayers / server.maxPlayers) * 100)
   : 0;
 
+const barColor = playerPercent > 85
+  ? 'bg-offline'
+  : playerPercent > 60
+    ? 'bg-warn'
+    : 'bg-accent';
+
 const RESOURCES_INITIAL_LIMIT = 50;
 const hasExtraResources = server.resources.length > RESOURCES_INITIAL_LIMIT;
+
+interface InfoItem {
+  label: string;
+  value: string;
+}
+
+const infoItems: InfoItem[] = [
+  { label: 'Gamemode', value: server.gametype ?? 'Not specified' },
+  { label: 'Map', value: server.mapname ?? 'Not specified' },
+  { label: 'Locale', value: server.locale ?? 'Not specified' },
+  { label: 'Project', value: server.projectName ?? 'Not specified' },
+  { label: 'Last Updated', value: formatDate(server.updatedAt) },
+  { label: 'Last Seen', value: formatDate(server.lastSeenAt) },
+  { label: 'First Tracked', value: formatDate(server.createdAt) },
+];
 ---
 
 <Base title={server.hostnameClean}>
   <!-- Back link -->
-  <a href="/" class="mb-4 inline-flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-    &larr; Back to servers
+  <a href="/" class="inline-flex items-center gap-1 text-sm font-medium text-txt-3 transition-colors hover:text-accent mb-6">
+    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+    </svg>
+    Back to servers
   </a>
 
-  <!-- Header section -->
-  <div class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
+  <!-- Hero card -->
+  <div class="rounded-xl border border-edge bg-surface-2 p-6 sm:p-8 fade-in">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-6">
       <!-- Server icon -->
       <img
         src={iconUrl}
-        alt={`${server.hostnameClean} icon`}
+        alt=""
         width="96"
         height="96"
-        class="h-16 w-16 shrink-0 rounded-lg object-cover sm:h-24 sm:w-24"
+        class="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-edge sm:h-20 sm:w-20"
         loading="eager"
       />
 
       <div class="min-w-0 flex-1">
-        <!-- Server name + status badge -->
+        <!-- Name + status -->
         <div class="flex flex-wrap items-center gap-3">
           <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{server.hostnameClean}</h1>
           {server.isOnline ? (
-            <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
+            <span class="inline-flex items-center gap-1.5 rounded-lg bg-online/10 px-2.5 py-1 text-xs font-semibold text-online ring-1 ring-online/20">
+              <span class="h-1.5 w-1.5 rounded-full bg-online dot-online"></span>
               Online
             </span>
           ) : (
-            <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
+            <span class="inline-flex items-center gap-1.5 rounded-lg bg-offline/10 px-2.5 py-1 text-xs font-semibold text-offline ring-1 ring-offline/20">
+              <span class="h-1.5 w-1.5 rounded-full bg-offline"></span>
               Offline
             </span>
           )}
         </div>
 
-        <!-- Player count with progress bar -->
-        <div class="mt-3">
-          <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-            <span class="font-medium">{server.currentPlayers}/{server.maxPlayers} players</span>
-            <span class="text-gray-400 dark:text-gray-600">({playerPercent}%)</span>
+        <!-- Player count + bar -->
+        <div class="mt-4 max-w-sm">
+          <div class="flex items-center justify-between text-sm mb-2">
+            <span class="text-txt-2">
+              <span class="font-bold text-txt text-lg tabular-nums">{server.currentPlayers}</span>
+              <span class="text-txt-3">/ {server.maxPlayers} players</span>
+            </span>
+            <span class="text-xs font-semibold text-txt-3 tabular-nums">{playerPercent}%</span>
           </div>
-          <div class="mt-1.5 h-2 w-full max-w-xs overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+          <div class="h-2 w-full rounded-full bg-edge overflow-hidden">
             <div
-              class="h-full rounded-full bg-green-500 transition-all"
+              class:list={['h-full rounded-full transition-all duration-700', barColor]}
               style={`width: ${playerPercent}%`}
             />
           </div>
         </div>
 
         <!-- Connect button -->
-        <div class="mt-4">
+        <div class="mt-5">
           <a
             href={connectUrl}
             target="_blank"
             rel="noopener"
-            class="inline-flex items-center rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            class="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-2.5 text-sm font-bold text-surface-0 transition-all duration-200 hover:bg-accent-hover hover:shadow-[0_4px_20px_-4px] hover:shadow-accent/30 active:scale-[0.97]"
           >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             Join Server
           </a>
         </div>
@@ -104,63 +136,41 @@ const hasExtraResources = server.resources.length > RESOURCES_INITIAL_LIMIT;
     </div>
   </div>
 
-  <!-- Player History Chart (HIST-01, HIST-02) -->
-  <div class="mt-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
-    <h2 class="text-lg font-semibold mb-4">Player History</h2>
+  <!-- Player History Chart -->
+  <div class="mt-6 rounded-xl border border-edge bg-surface-2 p-6 fade-in">
+    <h2 class="text-lg font-bold mb-4">Player History</h2>
     <PlayerChart serverId={server.id} client:load />
   </div>
 
-  <!-- Info grid section -->
-  <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-    <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Gamemode</dt>
-      <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{server.gametype ?? 'Not specified'}</dd>
-    </div>
-    <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Map</dt>
-      <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{server.mapname ?? 'Not specified'}</dd>
-    </div>
-    <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Locale</dt>
-      <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{server.locale ?? 'Not specified'}</dd>
-    </div>
-    <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Project Name</dt>
-      <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{server.projectName ?? 'Not specified'}</dd>
-    </div>
-    <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Last Updated</dt>
-      <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{formatDate(server.updatedAt)}</dd>
-    </div>
-    <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Last Seen in Stream</dt>
-      <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{formatDate(server.lastSeenAt)}</dd>
-    </div>
-    <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">First Tracked</dt>
-      <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{formatDate(server.createdAt)}</dd>
-    </div>
+  <!-- Info grid -->
+  <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 fade-in">
+    {infoItems.map((item) => (
+      <div class="rounded-xl border border-edge bg-surface-2 p-4">
+        <dt class="text-xs font-semibold uppercase tracking-widest text-txt-3">{item.label}</dt>
+        <dd class="mt-1.5 text-sm font-medium text-txt">{item.value}</dd>
+      </div>
+    ))}
   </div>
 
   <!-- Project Description -->
   {server.projectDescription && (
-    <div class="mt-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
-      <h2 class="text-lg font-semibold">About</h2>
-      <p class="mt-2 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+    <div class="mt-6 rounded-xl border border-edge bg-surface-2 p-6 fade-in">
+      <h2 class="text-lg font-bold">About</h2>
+      <p class="mt-3 text-sm leading-relaxed text-txt-2">
         {server.projectDescription}
       </p>
     </div>
   )}
 
-  <!-- Tags section -->
+  <!-- Tags -->
   {server.tags.length > 0 && (
-    <div class="mt-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
-      <h2 class="text-lg font-semibold">Tags</h2>
-      <div class="mt-3 flex flex-wrap gap-2">
+    <div class="mt-6 rounded-xl border border-edge bg-surface-2 p-6 fade-in">
+      <h2 class="text-lg font-bold mb-3">Tags</h2>
+      <div class="flex flex-wrap gap-2">
         {server.tags.map((tag) => (
           <a
             href={`/?tag=${encodeURIComponent(tag)}`}
-            class="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+            class="rounded-lg bg-accent/10 px-3 py-1 text-xs font-semibold text-accent ring-1 ring-accent/20 transition-all hover:bg-accent/20 hover:ring-accent/40"
           >
             {tag}
           </a>
@@ -169,26 +179,29 @@ const hasExtraResources = server.resources.length > RESOURCES_INITIAL_LIMIT;
     </div>
   )}
 
-  <!-- Resources section (BROW-09) -->
+  <!-- Resources -->
   {server.resources.length > 0 && (
-    <div class="mt-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
-      <h2 class="text-lg font-semibold">Running Resources ({server.resources.length})</h2>
+    <div class="mt-6 rounded-xl border border-edge bg-surface-2 p-6 fade-in">
+      <h2 class="text-lg font-bold">
+        Resources
+        <span class="ml-1.5 text-sm font-medium text-txt-3">({server.resources.length})</span>
+      </h2>
       {hasExtraResources ? (
-        <details class="mt-3">
-          <summary class="cursor-pointer text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-            Showing first {RESOURCES_INITIAL_LIMIT} of {server.resources.length} resources. Click to show all.
+        <details class="mt-3 group">
+          <summary class="cursor-pointer text-sm font-medium text-accent hover:text-accent-hover transition-colors">
+            Showing first {RESOURCES_INITIAL_LIMIT} — click to show all
           </summary>
           <div class="mt-3 flex flex-wrap gap-1.5">
             {server.resources.map((resource) => (
-              <span class="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+              <span class="rounded-md bg-surface-0 px-2 py-0.5 font-mono text-[11px] text-txt-2 ring-1 ring-edge">
                 {resource}
               </span>
             ))}
           </div>
         </details>
-        <div class="mt-3 flex flex-wrap gap-1.5">
+        <div class="mt-3 flex flex-wrap gap-1.5 group-open:hidden">
           {server.resources.slice(0, RESOURCES_INITIAL_LIMIT).map((resource) => (
-            <span class="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+            <span class="rounded-md bg-surface-0 px-2 py-0.5 font-mono text-[11px] text-txt-2 ring-1 ring-edge">
               {resource}
             </span>
           ))}
@@ -196,7 +209,7 @@ const hasExtraResources = server.resources.length > RESOURCES_INITIAL_LIMIT;
       ) : (
         <div class="mt-3 flex flex-wrap gap-1.5">
           {server.resources.map((resource) => (
-            <span class="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+            <span class="rounded-md bg-surface-0 px-2 py-0.5 font-mono text-[11px] text-txt-2 ring-1 ring-edge">
               {resource}
             </span>
           ))}

@@ -1,35 +1,22 @@
 ---
-/**
- * Category Navigation Component
- *
- * Renders a horizontal list of category pills/buttons for browsing
- * servers by category (RP, Racing, Freeroam). Includes an "All"
- * option that links back to the unfiltered listing.
- *
- * @example
- * ```astro
- * <CategoryNav categories={categories} activeCategory="rp" />
- * ```
- */
-
 interface Props {
-  /** Array of category definitions with slug and label */
   categories: { slug: string; label: string }[];
-  /** Currently active category slug for highlighting */
   activeCategory?: string;
 }
 
 const { categories, activeCategory } = Astro.props;
+const currentPath = Astro.url.pathname;
+const isHome = currentPath === '/' || currentPath === '';
 ---
 
-<nav class="flex gap-2 overflow-x-auto pb-1" aria-label="Server categories">
+<nav class="flex gap-2 overflow-x-auto pb-3 -mb-px scrollbar-none" aria-label="Server categories">
   <a
     href="/"
     class:list={[
-      'shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
-      !activeCategory
-        ? 'bg-blue-600 text-white'
-        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700',
+      'shrink-0 rounded-lg px-4 py-1.5 text-sm font-medium transition-all duration-200',
+      !activeCategory && isHome
+        ? 'bg-accent text-surface-0 shadow-[0_2px_12px_-2px] shadow-accent/30'
+        : 'text-txt-2 hover:text-txt hover:bg-surface-3',
     ]}
   >
     All
@@ -38,10 +25,10 @@ const { categories, activeCategory } = Astro.props;
     <a
       href={`/category/${cat.slug}`}
       class:list={[
-        'shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
+        'shrink-0 rounded-lg px-4 py-1.5 text-sm font-medium transition-all duration-200',
         activeCategory === cat.slug
-          ? 'bg-blue-600 text-white'
-          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700',
+          ? 'bg-accent text-surface-0 shadow-[0_2px_12px_-2px] shadow-accent/30'
+          : 'text-txt-2 hover:text-txt hover:bg-surface-3',
       ]}
     >
       {cat.label}
