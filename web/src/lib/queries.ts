@@ -208,18 +208,9 @@ export async function getServerListing(
   const whereClause = and(...conditions);
 
   // Build ORDER BY (name sort uses COLLATE NOCASE for case-insensitive ordering)
-  let orderByClause;
-  if (sort === 'name') {
-    const nameExpr = sql`${servers.hostnameClean} COLLATE NOCASE`;
-    orderByClause = sortDir === 'desc'
-      ? desc(nameExpr)
-      : asc(nameExpr);
-  } else {
-    // Default: sort by players
-    orderByClause = sortDir === 'asc'
-      ? asc(servers.currentPlayers)
-      : desc(servers.currentPlayers);
-  }
+  const orderByClause = sort === 'name'
+    ? (sortDir === 'desc' ? desc(sql`${servers.hostnameClean} COLLATE NOCASE`) : asc(sql`${servers.hostnameClean} COLLATE NOCASE`))
+    : (sortDir === 'asc' ? asc(servers.currentPlayers) : desc(servers.currentPlayers));
 
   // Calculate offset
   const offset = (page - 1) * pageSize;
