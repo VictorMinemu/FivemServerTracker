@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
+    "dev:web": "astro dev",
     "test": "vitest run --reporter=verbose",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
@@ -26,11 +27,17 @@
   },
   "homepage": "https://github.com/VictorMinemu/FivemServerTracker#readme",
   "dependencies": {
+    "@astrojs/node": "^9.5.4",
+    "@astrojs/preact": "^4.1.3",
+    "@tailwindcss/vite": "^4.2.1",
+    "astro": "^5.18.0",
     "better-sqlite3": "^12.6.2",
     "dotenv": "^17.3.1",
     "drizzle-orm": "^0.45.1",
     "node-cron": "^4.2.1",
-    "protobufjs": "^7.5.4"
+    "preact": "^10.28.4",
+    "protobufjs": "^7.5.4",
+    "tailwindcss": "^4.2.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
