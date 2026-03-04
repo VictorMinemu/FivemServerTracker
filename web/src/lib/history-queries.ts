@@ -13,7 +13,7 @@
  * @module
  */
 
-import { and, eq, gte, asc, sql } from 'drizzle-orm';
+import { and, eq, gte, asc } from 'drizzle-orm';
 import { snapshots, hourlyRollups, dailyRollups } from '../../../src/db/schema.js';
 import type { DrizzleDB } from '../../../src/db/index.js';
 
