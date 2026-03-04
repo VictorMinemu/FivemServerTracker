@@ -70,7 +70,7 @@ const SORT_OPTIONS: SortOption[] = [
 export default function SearchFilters(props: SearchFiltersProps) {
   const [query, setQuery] = useState(props.initialQuery);
   const [gamemode, setGamemode] = useState(props.initialGamemode);
-  const [locale, setLocale] = useState(props.initialLocale);
+  const [locale] = useState(props.initialLocale);
   const [minPlayers, setMinPlayers] = useState(props.initialMinPlayers);
   const [maxPlayers, setMaxPlayers] = useState(props.initialMaxPlayers);
 
