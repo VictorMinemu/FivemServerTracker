@@ -9,4 +9,4 @@
  */
 
 export { db } from '../../../src/db/index.js';
-export { servers, snapshots } from '../../../src/db/schema.js';
+export { servers, snapshots, hourlyRollups, dailyRollups } from '../../../src/db/schema.js';

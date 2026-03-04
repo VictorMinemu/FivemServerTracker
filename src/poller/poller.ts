@@ -13,9 +13,11 @@
  *    existing server state from the database
  * 5. **Store** - Upserts server records and creates snapshot rows in a
  *    single SQLite transaction for each operation
- * 6. **Retain** - Deletes expired snapshots (>7 days) and hourly rollups
+ * 6. **Aggregate** - Rolls up completed-hour snapshots into hourly rollups
+ *    and completed-day hourly rollups into daily rollups
+ * 7. **Retain** - Deletes expired snapshots (>7 days) and hourly rollups
  *    (>90 days) to keep database size bounded
- * 7. **Cache** - Updates the in-memory cache with the latest server data
+ * 8. **Cache** - Updates the in-memory cache with the latest server data
  *    so it's available as fallback if the next poll fails
  *
  * **Error recovery (DATA-06):** The entire cycle is wrapped in try/catch.
@@ -37,6 +39,7 @@ import {
   markMissingServersOffline,
   deleteExpiredData,
 } from '../db/operations.js';
+import { aggregateHourlyRollups, aggregateDailyRollups } from '../db/aggregation.js';
 import type { DrizzleDB } from '../db/index.js';
 import type { ServerCache } from '../cache/server-cache.js';
 import type { DecodedServer, PollResult, ServerUpsert } from '../types/server.js';
@@ -144,6 +147,15 @@ export async function executePollCycle(
       maxPlayers: s.maxPlayers,
     }));
     const snapshotsCreated = createSnapshots(db, snapshotData);
+
+    // 6b. Aggregate completed time windows into rollups
+    const hourlyInserted = aggregateHourlyRollups(db);
+    const dailyInserted = aggregateDailyRollups(db);
+    if (hourlyInserted > 0 || dailyInserted > 0) {
+      console.log(
+        `[FiveM Tracker] Aggregation: ${hourlyInserted} hourly, ${dailyInserted} daily rollups`,
+      );
+    }
 
     // 7. Mark missing servers (hysteresis)
     const presentIds = new Set(serverIds);
