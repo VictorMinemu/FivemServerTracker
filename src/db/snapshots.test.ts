@@ -112,7 +112,7 @@ function makeServerUpsert(overrides: Partial<ServerUpsert> = {}): ServerUpsert {
     createdAt: now,
     updatedAt: now,
     ...overrides,
-  };
+  } as ServerUpsert;
 }
 
 describe('batchUpsertServers', () => {
