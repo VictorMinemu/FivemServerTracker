@@ -1,14 +1,182 @@
 ---
 export const prerender = false;
 
+/**
+ * Server Listing Page
+ *
+ * Main entry point for the FiveM Server Tracker. Renders a paginated grid
+ * of server cards with search, filter, and sort controls powered by URL
+ * query parameters for bookmarkable, shareable state.
+ */
+
 import Base from '../layouts/Base.astro';
+import ServerCard from '../components/ServerCard.astro';
+import ServerGrid from '../components/ServerGrid.astro';
+import Pagination from '../components/Pagination.astro';
+import SearchFilters from '../components/SearchFilters.tsx';
+import { db } from '../lib/db.js';
+import { getServerListing, getCategories } from '../lib/queries.js';
+import { getServerIconUrl } from '../lib/url-helpers.js';
+
+// Read URL search params
+const url = new URL(Astro.request.url);
+const searchParams = url.searchParams;
+
+const q = searchParams.get('q') ?? undefined;
+const category = searchParams.get('category') ?? undefined;
+const gamemode = searchParams.get('gamemode') ?? undefined;
+const tag = searchParams.get('tag') ?? undefined;
+const locale = searchParams.get('locale') ?? undefined;
+const sort = (searchParams.get('sort') as 'players' | 'name' | undefined) ?? undefined;
+const sortDir = (searchParams.get('sortDir') as 'asc' | 'desc' | undefined) ?? undefined;
+
+const rawPage = searchParams.get('page');
+const page = rawPage ? Math.max(1, parseInt(rawPage, 10) || 1) : 1;
+
+const rawMinPlayers = searchParams.get('minPlayers');
+const minPlayers = rawMinPlayers ? parseInt(rawMinPlayers, 10) : undefined;
+
+const rawMaxPlayers = searchParams.get('maxPlayers');
+const maxPlayers = rawMaxPlayers ? parseInt(rawMaxPlayers, 10) : undefined;
+
+// Fetch data server-side
+const listing = await getServerListing(db, {
+  q,
+  gamemode,
+  category,
+  tag,
+  locale,
+  minPlayers: Number.isNaN(minPlayers) ? undefined : minPlayers,
+  maxPlayers: Number.isNaN(maxPlayers) ? undefined : maxPlayers,
+  sort,
+  sortDir,
+  page,
+});
+
+const categories = getCategories();
+
+// Build active filters for display chips
+interface ActiveFilter {
+  label: string;
+  paramKey: string;
+}
+
+const activeFilters: ActiveFilter[] = [];
+if (q) activeFilters.push({ label: `Search: ${q}`, paramKey: 'q' });
+if (category) {
+  const cat = categories.find((c) => c.slug === category);
+  activeFilters.push({ label: `Category: ${cat?.label ?? category}`, paramKey: 'category' });
+}
+if (gamemode) activeFilters.push({ label: `Gamemode: ${gamemode}`, paramKey: 'gamemode' });
+if (locale) activeFilters.push({ label: `Locale: ${locale}`, paramKey: 'locale' });
+if (minPlayers !== undefined && !Number.isNaN(minPlayers)) activeFilters.push({ label: `Min: ${minPlayers}`, paramKey: 'minPlayers' });
+if (maxPlayers !== undefined && !Number.isNaN(maxPlayers)) activeFilters.push({ label: `Max: ${maxPlayers}`, paramKey: 'maxPlayers' });
+
+/**
+ * Builds a URL removing a specific query parameter (for filter chip "x" buttons).
+ */
+function removeFilterUrl(paramKey: string): string {
+  const params = new URLSearchParams(searchParams.toString());
+  params.delete(paramKey);
+  params.delete('page'); // Reset to page 1 when removing a filter
+  const qs = params.toString();
+  return qs ? `/?${qs}` : '/';
+}
+
+/**
+ * Formats a large number with locale-aware thousands separators.
+ */
+function formatNumber(n: number): string {
+  return n.toLocaleString('en-US');
+}
 ---
 
-<Base title="Home">
-  <div class="flex flex-col items-center justify-center py-24 text-center">
-    <h1 class="text-3xl font-bold tracking-tight">Server Listing</h1>
-    <p class="mt-4 text-lg text-gray-500 dark:text-gray-400">
-      Server listing coming soon.
-    </p>
+<Base title="Browse Servers">
+  <div class="space-y-6">
+    {/* Header */}
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+        FiveM Servers
+      </h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        {formatNumber(listing.total)} servers found
+      </p>
+    </div>
+
+    {/* Search & Filters (Preact island) */}
+    <SearchFilters
+      client:load
+      initialQuery={q ?? ''}
+      initialSort={sort ?? 'players'}
+      initialSortDir={sortDir ?? 'desc'}
+      initialGamemode={category ?? ''}
+      initialLocale={locale ?? ''}
+      initialMinPlayers={minPlayers !== undefined && !Number.isNaN(minPlayers) ? String(minPlayers) : ''}
+      initialMaxPlayers={maxPlayers !== undefined && !Number.isNaN(maxPlayers) ? String(maxPlayers) : ''}
+      categories={categories}
+    />
+
+    {/* Active filter chips */}
+    {activeFilters.length > 0 && (
+      <div class="flex flex-wrap gap-2">
+        {activeFilters.map((filter) => (
+          <a
+            href={removeFilterUrl(filter.paramKey)}
+            class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/60"
+          >
+            {filter.label}
+            <span class="text-blue-500 dark:text-blue-400" aria-label={`Remove ${filter.label} filter`}>&times;</span>
+          </a>
+        ))}
+        <a
+          href="/"
+          class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600"
+        >
+          Clear all
+        </a>
+      </div>
+    )}
+
+    {/* Server grid or empty state */}
+    {listing.servers.length > 0 ? (
+      <ServerGrid>
+        {listing.servers.map((server) => (
+          <ServerCard
+            id={server.id}
+            name={server.hostnameClean}
+            players={server.currentPlayers}
+            maxPlayers={server.maxPlayers}
+            isOnline={server.isOnline}
+            gamemode={server.gametype}
+            mapname={server.mapname}
+            iconUrl={getServerIconUrl(server.id, server.iconVersion)}
+            lastSeenAt={server.lastSeenAt}
+          />
+        ))}
+      </ServerGrid>
+    ) : (
+      <div class="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-white py-16 text-center dark:border-gray-700 dark:bg-gray-800">
+        <p class="text-lg font-medium text-gray-600 dark:text-gray-400">No servers found</p>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-500">
+          Try adjusting your search or filters.
+        </p>
+        {activeFilters.length > 0 && (
+          <a
+            href="/"
+            class="mt-4 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+          >
+            Clear all filters
+          </a>
+        )}
+      </div>
+    )}
+
+    {/* Pagination */}
+    <Pagination
+      currentPage={listing.page}
+      totalPages={listing.totalPages}
+      baseUrl="/"
+      searchParams={searchParams}
+    />
   </div>
 </Base>
