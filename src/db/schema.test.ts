@@ -26,6 +26,8 @@ describe('tables', () => {
       expect(cols).toHaveProperty('gametype');
       expect(cols).toHaveProperty('mapname');
       expect(cols).toHaveProperty('maxPlayers');
+      expect(cols).toHaveProperty('currentPlayers');
+      expect(cols).toHaveProperty('iconVersion');
       expect(cols).toHaveProperty('locale');
       expect(cols).toHaveProperty('tags');
       expect(cols).toHaveProperty('resources');

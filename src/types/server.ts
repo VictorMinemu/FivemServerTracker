@@ -106,6 +106,12 @@ export interface ServerUpsert {
   /** Maximum player slots */
   maxPlayers: number;
 
+  /** Current player count at poll time (denormalized for listing queries) */
+  currentPlayers: number;
+
+  /** Server icon version number for CDN icon URLs, null if no icon */
+  iconVersion: number | null;
+
   /** Server locale code */
   locale: string | null;
 

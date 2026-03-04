@@ -45,6 +45,12 @@ export const servers = sqliteTable('servers', {
   /** Maximum player slots configured on the server */
   maxPlayers: integer('max_players').notNull(),
 
+  /** Denormalized current player count, updated each poll cycle to avoid N+1 queries on listing */
+  currentPlayers: integer('current_players').notNull().default(0),
+
+  /** Server icon version number for constructing CDN icon URLs, null if no icon */
+  iconVersion: integer('icon_version'),
+
   /** Server locale code (e.g., "en-US", "es-ES") */
   locale: text('locale'),
 

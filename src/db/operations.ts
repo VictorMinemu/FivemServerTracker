@@ -60,6 +60,8 @@ export function batchUpsertServers(
             gametype: server.gametype,
             mapname: server.mapname,
             maxPlayers: server.maxPlayers,
+            currentPlayers: server.currentPlayers,
+            iconVersion: server.iconVersion,
             locale: server.locale,
             tags: server.tags,
             resources: server.resources,

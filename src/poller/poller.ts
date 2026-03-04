@@ -122,6 +122,8 @@ export async function executePollCycle(
         gametype: server.gametype,
         mapname: server.mapname,
         maxPlayers: server.maxPlayers,
+        currentPlayers: server.players,
+        iconVersion: server.iconVersion,
         locale: server.locale,
         tags: JSON.stringify(server.tags),
         resources: JSON.stringify(server.resources),
