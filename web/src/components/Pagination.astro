@@ -1,0 +1,125 @@
+---
+/**
+ * Pagination Component
+ *
+ * Renders page navigation links with First, Prev, page number window,
+ * Next, and Last buttons. Preserves existing URL search params (search, filters, sort)
+ * across page navigation links.
+ *
+ * @param currentPage - The current active page (1-based)
+ * @param totalPages - Total number of pages
+ * @param baseUrl - The base URL path (e.g., "/")
+ * @param searchParams - Current URL search params to preserve
+ */
+
+interface Props {
+  currentPage: number;
+  totalPages: number;
+  baseUrl: string;
+  searchParams: URLSearchParams;
+}
+
+const { currentPage, totalPages, baseUrl, searchParams } = Astro.props;
+
+/**
+ * Builds a page URL preserving existing query parameters.
+ */
+function getPageUrl(page: number): string {
+  const params = new URLSearchParams(searchParams.toString());
+  if (page <= 1) {
+    params.delete('page');
+  } else {
+    params.set('page', String(page));
+  }
+  const qs = params.toString();
+  return qs ? `${baseUrl}?${qs}` : baseUrl;
+}
+
+/** Calculate window of page numbers to show (up to 5 around current page) */
+const WINDOW_SIZE = 5;
+const halfWindow = Math.floor(WINDOW_SIZE / 2);
+let windowStart = Math.max(1, currentPage - halfWindow);
+let windowEnd = Math.min(totalPages, windowStart + WINDOW_SIZE - 1);
+// Adjust start if window is smaller than desired at the end
+if (windowEnd - windowStart + 1 < WINDOW_SIZE) {
+  windowStart = Math.max(1, windowEnd - WINDOW_SIZE + 1);
+}
+
+const pages: number[] = [];
+for (let i = windowStart; i <= windowEnd; i++) {
+  pages.push(i);
+}
+
+const hasPrev = currentPage > 1;
+const hasNext = currentPage < totalPages;
+const showFirst = windowStart > 1;
+const showLast = windowEnd < totalPages;
+
+const linkBase = 'inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors';
+const linkActive = 'bg-blue-600 text-white';
+const linkInactive = 'bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700';
+const linkDisabled = 'pointer-events-none text-gray-400 dark:text-gray-600';
+---
+
+{totalPages > 1 && (
+  <nav aria-label="Pagination" class="mt-8 flex items-center justify-center gap-1">
+    {/* First page */}
+    {showFirst && (
+      <a href={getPageUrl(1)} class:list={[linkBase, linkInactive]} aria-label="First page">
+        &laquo;
+      </a>
+    )}
+
+    {/* Previous page */}
+    {hasPrev ? (
+      <a href={getPageUrl(currentPage - 1)} class:list={[linkBase, linkInactive]} aria-label="Previous page">
+        &lsaquo;
+      </a>
+    ) : (
+      <span class:list={[linkBase, linkDisabled]} aria-disabled="true">
+        &lsaquo;
+      </span>
+    )}
+
+    {/* Ellipsis before window */}
+    {windowStart > 2 && (
+      <span class="px-2 text-sm text-gray-400 dark:text-gray-600">&hellip;</span>
+    )}
+
+    {/* Page number links */}
+    {pages.map((page) => (
+      page === currentPage ? (
+        <span class:list={[linkBase, linkActive]} aria-current="page">
+          {page}
+        </span>
+      ) : (
+        <a href={getPageUrl(page)} class:list={[linkBase, linkInactive]}>
+          {page}
+        </a>
+      )
+    ))}
+
+    {/* Ellipsis after window */}
+    {windowEnd < totalPages - 1 && (
+      <span class="px-2 text-sm text-gray-400 dark:text-gray-600">&hellip;</span>
+    )}
+
+    {/* Next page */}
+    {hasNext ? (
+      <a href={getPageUrl(currentPage + 1)} class:list={[linkBase, linkInactive]} aria-label="Next page">
+        &rsaquo;
+      </a>
+    ) : (
+      <span class:list={[linkBase, linkDisabled]} aria-disabled="true">
+        &rsaquo;
+      </span>
+    )}
+
+    {/* Last page */}
+    {showLast && (
+      <a href={getPageUrl(totalPages)} class:list={[linkBase, linkInactive]} aria-label="Last page">
+        &raquo;
+      </a>
+    )}
+  </nav>
+)}

@@ -1,0 +1,13 @@
+---
+/**
+ * ServerGrid Component
+ *
+ * Responsive grid layout for rendering server cards. Uses CSS grid with
+ * 1 column on mobile, 2 on tablet (sm), and 3 on desktop (lg).
+ * Children are passed via the default <slot />.
+ */
+---
+
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  <slot />
+</div>
