@@ -1,0 +1,50 @@
+---
+/**
+ * Category Navigation Component
+ *
+ * Renders a horizontal list of category pills/buttons for browsing
+ * servers by category (RP, Racing, Freeroam). Includes an "All"
+ * option that links back to the unfiltered listing.
+ *
+ * @example
+ * ```astro
+ * <CategoryNav categories={categories} activeCategory="rp" />
+ * ```
+ */
+
+interface Props {
+  /** Array of category definitions with slug and label */
+  categories: { slug: string; label: string }[];
+  /** Currently active category slug for highlighting */
+  activeCategory?: string;
+}
+
+const { categories, activeCategory } = Astro.props;
+---
+
+<nav class="flex gap-2 overflow-x-auto pb-1" aria-label="Server categories">
+  <a
+    href="/"
+    class:list={[
+      'shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
+      !activeCategory
+        ? 'bg-blue-600 text-white'
+        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700',
+    ]}
+  >
+    All
+  </a>
+  {categories.map((cat) => (
+    <a
+      href={`/category/${cat.slug}`}
+      class:list={[
+        'shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
+        activeCategory === cat.slug
+          ? 'bg-blue-600 text-white'
+          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700',
+      ]}
+    >
+      {cat.label}
+    </a>
+  ))}
+</nav>

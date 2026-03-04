@@ -1,0 +1,154 @@
+---
+export const prerender = false;
+
+import Base from '../../layouts/Base.astro';
+import CategoryNav from '../../components/CategoryNav.astro';
+import { db } from '../../lib/db.js';
+import { getServerListing, getCategories, CATEGORY_MAP } from '../../lib/queries.js';
+import { getServerIconUrl } from '../../lib/url-helpers.js';
+
+const { slug } = Astro.params;
+
+if (!slug) {
+  return Astro.redirect('/');
+}
+
+// Validate slug exists in category map
+const catDef = CATEGORY_MAP[slug];
+if (!catDef) {
+  return Astro.redirect('/');
+}
+
+const categories = getCategories();
+const categoryLabel = catDef.label;
+
+// Read pagination and sort params from URL
+const url = Astro.url;
+const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
+const sort = (url.searchParams.get('sort') === 'name' ? 'name' : 'players') as 'players' | 'name';
+const sortDir = (url.searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc';
+
+const result = await getServerListing(db, { category: slug, page, sort, sortDir });
+
+/**
+ * Build a pagination URL preserving current params but changing the page.
+ */
+function pageUrl(p: number): string {
+  const params = new URLSearchParams(url.searchParams);
+  params.set('page', String(p));
+  return `/category/${slug}?${params.toString()}`;
+}
+---
+
+<Base title={`${categoryLabel} Servers`}>
+  <div class="mb-6">
+    <CategoryNav categories={categories} activeCategory={slug} />
+  </div>
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
+      {categoryLabel} Servers
+      <span class="ml-2 text-base font-normal text-gray-500 dark:text-gray-400">
+        ({result.total} total)
+      </span>
+    </h1>
+  </div>
+
+  <!-- Sort controls -->
+  <div class="mb-4 flex items-center gap-4 text-sm">
+    <span class="text-gray-500 dark:text-gray-400">Sort by:</span>
+    <a
+      href={`/category/${slug}?sort=players&sortDir=desc`}
+      class:list={[
+        'rounded px-2 py-1 transition-colors',
+        sort === 'players'
+          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800',
+      ]}
+    >
+      Most Players
+    </a>
+    <a
+      href={`/category/${slug}?sort=name&sortDir=asc`}
+      class:list={[
+        'rounded px-2 py-1 transition-colors',
+        sort === 'name'
+          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800',
+      ]}
+    >
+      Name A-Z
+    </a>
+  </div>
+
+  <!-- Server grid -->
+  {result.servers.length > 0 ? (
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {result.servers.map((server) => {
+        const iconUrl = getServerIconUrl(server.id, server.iconVersion);
+        return (
+          <a
+            href={`/server/${server.id}`}
+            class="group rounded-lg border border-gray-200 bg-white p-4 transition-colors hover:border-blue-300 hover:bg-blue-50/50 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-blue-700 dark:hover:bg-blue-950/30"
+          >
+            <div class="flex items-start gap-3">
+              <img
+                src={iconUrl}
+                alt=""
+                width="40"
+                height="40"
+                class="h-10 w-10 shrink-0 rounded object-cover"
+                loading="lazy"
+              />
+              <div class="min-w-0 flex-1">
+                <h2 class="truncate text-sm font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                  {server.hostnameClean}
+                </h2>
+                <div class="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  <span>{server.currentPlayers}/{server.maxPlayers} players</span>
+                  {server.isOnline ? (
+                    <span class="inline-block h-2 w-2 rounded-full bg-green-500" title="Online" />
+                  ) : (
+                    <span class="inline-block h-2 w-2 rounded-full bg-red-500" title="Offline" />
+                  )}
+                </div>
+                {server.gametype && (
+                  <p class="mt-1 truncate text-xs text-gray-400 dark:text-gray-500">{server.gametype}</p>
+                )}
+              </div>
+            </div>
+          </a>
+        );
+      })}
+    </div>
+  ) : (
+    <div class="py-12 text-center text-gray-500 dark:text-gray-400">
+      <p>No servers found in this category.</p>
+    </div>
+  )}
+
+  <!-- Pagination -->
+  {result.totalPages > 1 && (
+    <nav class="mt-8 flex items-center justify-center gap-2" aria-label="Pagination">
+      {page > 1 && (
+        <a
+          href={pageUrl(page - 1)}
+          class="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+        >
+          Previous
+        </a>
+      )}
+      <span class="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
+        Page {page} of {result.totalPages}
+      </span>
+      {page < result.totalPages && (
+        <a
+          href={pageUrl(page + 1)}
+          class="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+        >
+          Next
+        </a>
+      )}
+    </nav>
+  )}
+</Base>

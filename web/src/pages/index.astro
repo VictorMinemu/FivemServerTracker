@@ -14,8 +14,9 @@ import ServerCard from '../components/ServerCard.astro';
 import ServerGrid from '../components/ServerGrid.astro';
 import Pagination from '../components/Pagination.astro';
 import SearchFilters from '../components/SearchFilters.tsx';
+import TagCloud from '../components/TagCloud.astro';
 import { db } from '../lib/db.js';
-import { getServerListing, getCategories } from '../lib/queries.js';
+import { getServerListing, getCategories, getPopularTags } from '../lib/queries.js';
 import { getServerIconUrl } from '../lib/url-helpers.js';
 
 // Read URL search params
@@ -54,6 +55,7 @@ const listing = await getServerListing(db, {
 });
 
 const categories = getCategories();
+const popularTags = await getPopularTags(db, 20);
 
 // Build active filters for display chips
 interface ActiveFilter {
@@ -115,6 +117,14 @@ function formatNumber(n: number): string {
       initialMaxPlayers={maxPlayers !== undefined && !Number.isNaN(maxPlayers) ? String(maxPlayers) : ''}
       categories={categories}
     />
+
+    {/* Popular Tags */}
+    {popularTags.length > 0 && (
+      <div>
+        <h2 class="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">Popular Tags</h2>
+        <TagCloud tags={popularTags} />
+      </div>
+    )}
 
     {/* Active filter chips */}
     {activeFilters.length > 0 && (
