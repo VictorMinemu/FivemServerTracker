@@ -16,8 +16,9 @@ import Pagination from '../components/Pagination.astro';
 import SearchFilters from '../components/SearchFilters.tsx';
 import TagCloud from '../components/TagCloud.astro';
 import { db } from '../lib/db.js';
-import { getServerListing, getCategories, getPopularTags } from '../lib/queries.js';
+import { getServerListing, getCategories, getPopularTags, getPopularLocales } from '../lib/queries.js';
 import { getServerIconUrl } from '../lib/url-helpers.js';
+import { localeToFlag, localeToRegionName } from '../lib/locale-helpers.js';
 
 // Read URL search params
 const url = new URL(Astro.request.url);
@@ -56,6 +57,13 @@ const listing = await getServerListing(db, {
 
 const categories = getCategories();
 const popularTags = await getPopularTags(db, 20);
+const popularLocales = await getPopularLocales(db);
+const localeOptions = popularLocales.map((l) => ({
+  locale: l.locale,
+  flag: localeToFlag(l.locale),
+  label: localeToRegionName(l.locale),
+  count: l.count,
+}));
 
 // Build active filters for display chips
 interface ActiveFilter {
@@ -70,7 +78,7 @@ if (category) {
   activeFilters.push({ label: `Category: ${cat?.label ?? category}`, paramKey: 'category' });
 }
 if (gamemode) activeFilters.push({ label: `Gamemode: ${gamemode}`, paramKey: 'gamemode' });
-if (locale) activeFilters.push({ label: `Locale: ${locale}`, paramKey: 'locale' });
+if (locale) activeFilters.push({ label: `${localeToFlag(locale)} ${localeToRegionName(locale)}`, paramKey: 'locale' });
 if (minPlayers !== undefined && !Number.isNaN(minPlayers)) activeFilters.push({ label: `Min: ${minPlayers}`, paramKey: 'minPlayers' });
 if (maxPlayers !== undefined && !Number.isNaN(maxPlayers)) activeFilters.push({ label: `Max: ${maxPlayers}`, paramKey: 'maxPlayers' });
 
@@ -116,6 +124,7 @@ function formatNumber(n: number): string {
       initialMinPlayers={minPlayers !== undefined && !Number.isNaN(minPlayers) ? String(minPlayers) : ''}
       initialMaxPlayers={maxPlayers !== undefined && !Number.isNaN(maxPlayers) ? String(maxPlayers) : ''}
       categories={categories}
+      locales={localeOptions}
     />
 
     {/* Popular Tags */}
@@ -159,6 +168,7 @@ function formatNumber(n: number): string {
             isOnline={server.isOnline}
             gamemode={server.gametype}
             mapname={server.mapname}
+            locale={server.locale}
             iconUrl={getServerIconUrl(server.id, server.iconVersion)}
             lastSeenAt={server.lastSeenAt}
           />

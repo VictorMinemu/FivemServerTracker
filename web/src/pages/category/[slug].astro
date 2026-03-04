@@ -6,6 +6,7 @@ import CategoryNav from '../../components/CategoryNav.astro';
 import { db } from '../../lib/db.js';
 import { getServerListing, getCategories, CATEGORY_MAP } from '../../lib/queries.js';
 import { getServerIconUrl } from '../../lib/url-helpers.js';
+import { localeToFlag } from '../../lib/locale-helpers.js';
 
 const { slug } = Astro.params;
 
@@ -101,8 +102,9 @@ function pageUrl(p: number): string {
                 loading="lazy"
               />
               <div class="min-w-0 flex-1">
-                <h2 class="truncate text-sm font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                  {server.hostnameClean}
+                <h2 class="flex items-center gap-1.5 text-sm font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                  {localeToFlag(server.locale) && <span class="shrink-0">{localeToFlag(server.locale)}</span>}
+                  <span class="truncate">{server.hostnameClean}</span>
                 </h2>
                 <div class="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                   <span>{server.currentPlayers}/{server.maxPlayers} players</span>

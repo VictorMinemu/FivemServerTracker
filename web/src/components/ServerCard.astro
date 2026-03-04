@@ -17,6 +17,7 @@
  */
 
 import { getConnectUrl } from '../lib/url-helpers.js';
+import { localeToFlag } from '../lib/locale-helpers.js';
 
 interface Props {
   id: string;
@@ -26,11 +27,13 @@ interface Props {
   isOnline: boolean;
   gamemode: string | null;
   mapname: string | null;
+  locale: string | null;
   iconUrl: string;
   lastSeenAt: Date;
 }
 
-const { id, name, players, maxPlayers, isOnline, gamemode, mapname, iconUrl, lastSeenAt } = Astro.props;
+const { id, name, players, maxPlayers, isOnline, gamemode, mapname, locale, iconUrl, lastSeenAt } = Astro.props;
+const flag = localeToFlag(locale);
 
 /**
  * Formats a Date as a relative time string (e.g., "5 min ago", "2 hours ago").
@@ -77,6 +80,9 @@ const playerPercent = maxPlayers > 0 ? Math.round((players / maxPlayers) * 100) 
           ]}
           title={isOnline ? 'Online' : 'Offline'}
         ></span>
+        {flag && (
+          <span class="shrink-0 text-base" title={locale ?? ''} aria-label={`Server locale: ${locale}`}>{flag}</span>
+        )}
         <h3 class="truncate text-sm font-semibold text-gray-900 group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-400">
           {name}
         </h3>

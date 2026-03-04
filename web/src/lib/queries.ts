@@ -64,6 +64,7 @@ export interface ServerCard {
   gametype: string | null;
   mapname: string | null;
   iconVersion: number | null;
+  locale: string | null;
   lastSeenAt: Date;
   tags: string | null;
 }
@@ -226,6 +227,7 @@ export async function getServerListing(
       gametype: servers.gametype,
       mapname: servers.mapname,
       iconVersion: servers.iconVersion,
+      locale: servers.locale,
       lastSeenAt: servers.lastSeenAt,
       tags: servers.tags,
     })
@@ -377,6 +379,49 @@ export async function getPopularTags(
     .slice(0, limit);
 
   return sorted;
+}
+
+/** Locale with server count */
+export interface LocaleCount {
+  locale: string;
+  count: number;
+}
+
+/**
+ * Aggregates distinct locales from online servers with their server counts.
+ *
+ * Queries all online servers' locale column, counts occurrences, and returns
+ * sorted by frequency descending. Filters out null/empty locales.
+ *
+ * @param db - Drizzle database instance
+ * @param limit - Maximum number of locales to return (default: 30)
+ * @returns Array of locales with server counts, sorted by frequency
+ *
+ * @example
+ * ```ts
+ * const locales = await getPopularLocales(db);
+ * // [{ locale: 'en-US', count: 5000 }, { locale: 'pt-BR', count: 2000 }, ...]
+ * ```
+ */
+export async function getPopularLocales(
+  db: DrizzleDB,
+  limit = 30,
+): Promise<LocaleCount[]> {
+  const rows = db
+    .select({
+      locale: servers.locale,
+      count: count(),
+    })
+    .from(servers)
+    .where(and(eq(servers.isOnline, true), sql`${servers.locale} IS NOT NULL AND ${servers.locale} != ''`))
+    .groupBy(servers.locale)
+    .orderBy(desc(count()))
+    .limit(limit)
+    .all();
+
+  return rows
+    .filter((r): r is { locale: string; count: number } => r.locale !== null)
+    .map((r) => ({ locale: r.locale, count: r.count }));
 }
 
 /**

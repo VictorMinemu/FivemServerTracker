@@ -16,6 +16,14 @@ interface CategoryOption {
   label: string;
 }
 
+/** Locale option for the locale dropdown */
+interface LocaleOption {
+  locale: string;
+  flag: string;
+  label: string;
+  count: number;
+}
+
 /** Props for the SearchFilters component */
 interface SearchFiltersProps {
   initialQuery: string;
@@ -26,6 +34,7 @@ interface SearchFiltersProps {
   initialMinPlayers: string;
   initialMaxPlayers: string;
   categories: CategoryOption[];
+  locales: LocaleOption[];
 }
 
 /** Sort option definition for the sort dropdown */
@@ -70,7 +79,7 @@ const SORT_OPTIONS: SortOption[] = [
 export default function SearchFilters(props: SearchFiltersProps) {
   const [query, setQuery] = useState(props.initialQuery);
   const [gamemode, setGamemode] = useState(props.initialGamemode);
-  const [locale] = useState(props.initialLocale);
+  const [locale, setLocale] = useState(props.initialLocale);
   const [minPlayers, setMinPlayers] = useState(props.initialMinPlayers);
   const [maxPlayers, setMaxPlayers] = useState(props.initialMaxPlayers);
 
@@ -163,7 +172,7 @@ export default function SearchFilters(props: SearchFiltersProps) {
       </div>
 
       {/* Filter row - stacks on mobile, row on desktop */}
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {/* Category/Gamemode dropdown */}
         <select
           value={gamemode}
@@ -175,6 +184,23 @@ export default function SearchFilters(props: SearchFiltersProps) {
           {props.categories.map((cat) => (
             <option key={cat.slug} value={cat.slug}>
               {cat.label}
+            </option>
+          ))}
+        </select>
+
+        {/* Locale/Region dropdown */}
+        <select
+          value={locale}
+          onChange={(e) => {
+            setLocale((e.target as HTMLSelectElement).value);
+          }}
+          class={selectClass}
+          aria-label="Filter by region"
+        >
+          <option value="">All Regions</option>
+          {props.locales.map((loc) => (
+            <option key={loc.locale} value={loc.locale}>
+              {loc.flag} {loc.label} ({loc.count.toLocaleString()})
             </option>
           ))}
         </select>
@@ -192,7 +218,10 @@ export default function SearchFilters(props: SearchFiltersProps) {
             </option>
           ))}
         </select>
+      </div>
 
+      {/* Player range + submit row */}
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {/* Min players */}
         <input
           type="number"
