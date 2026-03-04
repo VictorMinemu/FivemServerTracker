@@ -171,6 +171,7 @@ function formatNumber(n: number): string {
             locale={server.locale}
             iconUrl={getServerIconUrl(server.id, server.iconVersion)}
             lastSeenAt={server.lastSeenAt}
+            updatedAt={server.updatedAt}
           />
         ))}
       </ServerGrid>

@@ -66,6 +66,7 @@ export interface ServerCard {
   iconVersion: number | null;
   locale: string | null;
   lastSeenAt: Date;
+  updatedAt: Date;
   tags: string | null;
 }
 
@@ -229,6 +230,7 @@ export async function getServerListing(
       iconVersion: servers.iconVersion,
       locale: servers.locale,
       lastSeenAt: servers.lastSeenAt,
+      updatedAt: servers.updatedAt,
       tags: servers.tags,
     })
     .from(servers)

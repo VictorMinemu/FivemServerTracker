@@ -14,6 +14,7 @@
  * @param mapname - Current map name (nullable)
  * @param iconUrl - URL for the server icon image
  * @param lastSeenAt - When the server was last detected in a poll
+ * @param updatedAt - When the server record was last updated in the database
  */
 
 import { getConnectUrl } from '../lib/url-helpers.js';
@@ -30,9 +31,10 @@ interface Props {
   locale: string | null;
   iconUrl: string;
   lastSeenAt: Date;
+  updatedAt: Date;
 }
 
-const { id, name, players, maxPlayers, isOnline, gamemode, mapname, locale, iconUrl, lastSeenAt } = Astro.props;
+const { id, name, players, maxPlayers, isOnline, gamemode, mapname, locale, iconUrl, lastSeenAt, updatedAt } = Astro.props;
 const flag = localeToFlag(locale);
 
 /**
@@ -54,7 +56,7 @@ function formatRelativeTime(date: Date): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-const relativeTime = formatRelativeTime(lastSeenAt);
+const relativeTime = formatRelativeTime(updatedAt);
 const playerPercent = maxPlayers > 0 ? Math.round((players / maxPlayers) * 100) : 0;
 ---
 
@@ -107,6 +109,6 @@ const playerPercent = maxPlayers > 0 ? Math.round((players / maxPlayers) * 100) 
   </div>
 
   <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">
-    {relativeTime}
+    Last updated {relativeTime}
   </p>
 </a>
